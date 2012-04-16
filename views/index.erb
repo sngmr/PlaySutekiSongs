@@ -1,202 +1,217 @@
 <!DOCTYPE html>
 <html xmlns:fb="http://ogp.me/ns/fb#" lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes" />
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes" />
 
-    <title><%= @app['name'] %></title>
-    <link rel="stylesheet" href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css">
+<title><%= @app['name'] %></title>
+<link rel="stylesheet" href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css">
 
-    <!--[if IEMobile]>
-    <link rel="stylesheet" href="mobile.css" media="screen" type="text/css"  />
-    <![endif]-->
+<!--[if IEMobile]>
+<link rel="stylesheet" href="mobile.css" media="screen" type="text/css"  />
+<![endif]-->
 
-    <!-- These are Open Graph tags.  They add meta data to your  -->
-    <!-- site that facebook uses when your content is shared     -->
-    <!-- over facebook.  You should fill these tags in with      -->
-    <!-- your data.  To learn more about Open Graph, visit       -->
-    <!-- 'https://developers.facebook.com/docs/opengraph/'       -->
-    <meta property="og:title" content="<%= @app['name'] %>" />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="<%= url %>" />
-    <meta property="og:image" content="<%= url('/logo.png') %>" />
-    <meta property="og:site_name" content="<%= @app['name'] %>" />
-    <meta property="og:description" content="Play all Youtube video published on Facebook feed." />
-    <meta property="fb:app_id" content="<%= @app['name'] %>" />
+<!-- These are Open Graph tags.  They add meta data to your  -->
+<!-- site that facebook uses when your content is shared     -->
+<!-- over facebook.  You should fill these tags in with      -->
+<!-- your data.  To learn more about Open Graph, visit       -->
+<!-- 'https://developers.facebook.com/docs/opengraph/'       -->
+<meta property="og:title" content="<%= @app['name'] %>" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="<%= url %>" />
+<meta property="og:image" content="<%= url('/logo.png') %>" />
+<meta property="og:site_name" content="<%= @app['name'] %>" />
+<meta property="og:description" content="Play all Youtube video published on Facebook feed." />
+<meta property="fb:app_id" content="<%= @app['name'] %>" />
 
-    <script type="text/javascript" src="/javascripts/jquery-1.7.1.min.js"></script>
-    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/swfobject/2.2/swfobject.js"></script>
-    
-    <script type="text/javascript">
-    var STK = {};
-    
-    STK.videoList = [];
-    STK.videoIndex = 0;
-    
-    STK.login = function() {
-        FB.getLoginStatus(function(response) {
-            if (response.status === 'connected') {
-            	STK.init();
-            } else {
-                FB.login(function(response) {
-                    if (response.authResponse) {
-                    	STK.init();
-                    } else {
-                        alert("Oops!! You need to login to Facebook, bro!!");
-                    }
-                }, {scope: 'user_groups'});
-            }
-        });
-    }
-    
-    STK.init = function() {
-    	FB.api('/331943460187050/feed', function(response) {
-    		var feeds = response.data;
-    		if (!feeds || feeds.length === 0) {
-    			alert('Oops!! There is no data available!!');
-    			return;
-    		}
-    		
-			for (var i = 0, len = feeds.length; i < len; i++) {
-				var feed = feeds[i];
-				
-				// Get Youtube video id
-				var matches = null;
-				var reg = /(?:youtube\.com|youtu\.be).*[/?=]([-\w]{11})/;
-				if (feed.type === 'video') {
-					matches = feed.source.match(reg);
-				} else if (feed.type === 'link') {
-					matches = feed.link.match(reg);
-				}
-				
-				if (matches !== null) {
-					STK.videoList.push({
-						youtube_id: matches[1],
-						message: feed.message,
-						from: {
-							id: feed.from.id,
-							name: feed.from.name,
-						},
-					});
-				}
-			}
-			if (STK.videoList.length === 0) {
-				alert('Oops!! There is video available!!');
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/swfobject/2.2/swfobject.js"></script>
+
+<script type="text/javascript">
+var STK = {};
+
+STK.videoList = [];
+STK.videoIndex = 0;
+STK.player = null;
+
+var accessToken = null;
+
+STK.login = function() {
+    FB.getLoginStatus(function(response) {
+        if (response.status === 'connected') {
+        	STK.init();
+        	accessToken = response.authResponse.accessToken;
+        } else {
+            FB.login(function(response) {
+                if (response.authResponse) {
+                	STK.init();
+                	accessToken = response.authResponse.accessToken;
+                } else {
+                    alert("Oops!! You need to login to Facebook, bro!!");
+                }
+            }, {scope: 'user_groups'});
+        }
+    });
+}
+
+STK.init = function() {
+	FB.api('/331943460187050/feed', function(response) {
+		var feeds = response.data;
+		if (!feeds || feeds.length === 0) {
+			alert('Oops!! There is no data available!!');
+			return;
+		}
+
+		var feed, matches;		
+		var reg = /(?:youtube\.com|youtu\.be).*(?:\/|v=)([0-9a-zA-Z-_]{11})/;
+		for (var i = 0, len = feeds.length; i < len; i++) {
+			feed = feeds[i];
+			
+			// Get Youtube video id
+			matches = null;
+			if (feed.type === 'video') {
+				matches = feed.source.match(reg);
+			} else if (feed.type === 'link') {
+				matches = feed.link.match(reg);
 			}
 			
-			// Create Youtube player and play
-			swfobject.embedSWF("http://www.youtube.com/v/" + STK.videoList[STK.videoIndex].youtube_id + "?enablejsapi=1&autoplay=1&playerapiid=player", 
-				"video", "750", "422", "8", null, null, { allowScriptAccess: "always" }, { id: "player" });
-				
-			// Create list
-			var html = "";
-			$.each(STK.videoList, function(i, value) {
-				html += '<tr id="video_' + i + '">';
-				html += '<td><img src="https://graph.facebook.com/' + value.from.id + '/picture?type=normal" width="25" height="25"/></td>';
-				html += '<td>' + value.message + '</td>';
-				html += '</tr>';
-			});
-			$("#list").html(html);
+			if (matches !== null) {
+				STK.videoList.push({
+					youtube_id: matches[1],
+					message: feed.message,
+					from: {
+						id: feed.from.id,
+						name: feed.from.name,
+					},
+				});
+			}
+		}
+		if (STK.videoList.length === 0) {
+			alert('Oops!! There is video available!!');
+			return;
+		}
+		
+		// Create Youtube player and play
+		swfobject.embedSWF("http://www.youtube.com/v/" + STK.videoList[STK.videoIndex].youtube_id + "?enablejsapi=1&version=3", 
+			"video", "750", "422", "8", null, null, { allowScriptAccess: "always" }, { id: "player" });
+		STK.player = document.getElementById("player");
 			
-			// Add event listener
-			$("#prev").click(function(){
-        		STK.prev();
-    		});
-    		$("#next").click(function(){
-        		STK.next();
-    		});
-    		
-    		// Let's roll
-    		$("#video_control").css("display", "");
-    		STK.highlight();
-    	});
-    }
-    
-    STK.next = function() {
-    	if (STK.videoIndex >= STK.videoList.length - 1) {
-    		STK.videoIndex = 0;
-    	} else {
-    		STK.videoIndex++;
-    	}
-    	STK._play();
-    }
-    STK.prev = function() {
-    	if (STK.videoIndex === 0) {
-    		STK.videoIndex = STK.videoList.length - 1;
-    	} else {
-    		STK.videoIndex--;
-    	}
-    	STK._play();
-    }
-    STK._play = function() {
-    	document.getElementById("player").loadVideoById(STK.videoList[STK.videoIndex].youtube_id);
-    	STK.highlight();
-    }
-    
-    STK.highlight = function() {
-    	$("tr").each(function() {
-    		$(this).css("background-color", "");
-    	});
-    	$("#video_" + STK.videoIndex).css("background-color", "#EEFFFF");
-    }
-    
-    // Youtube player handlers
-    function onYouTubePlayerReady(playerId) {
-    	document.getElementById(playerId).addEventListener("onStateChange", "onytplayerStateChange");
-    }
-    function onytplayerStateChange(newState) {
-    	if (newState === 0) {
+		// Create list
+		var html = "";
+		$.each(STK.videoList, function(i, value) {
+			html += '<tr id="video_' + i + '">';
+			html += '<td><img src="https://graph.facebook.com/' + value.from.id + '/picture?type=normal" width="25" height="25"/></td>';
+			html += '<td>' + value.message + '</td>';
+			html += '</tr>';
+		});
+		$("#play_list").html(html);
+		
+		// Add event listener
+		$("#prev").click(function(){
+    		STK.prev();
+		});
+		$("#next").click(function(){
     		STK.next();
-    	}
-    }
-    </script>
+		});
+		
+		// Let's roll
+		$("#video_control").css("display", "");
+		STK.highlight();
+	});
+}
 
-    <!--[if IE]>
-      <script type="text/javascript">
-        var tags = ['header', 'section'];
-        while(tags.length)
-          document.createElement(tags.pop());
-      </script>
-    <![endif]-->
-  </head>
+STK.next = function() {
+	if (STK.videoIndex >= STK.videoList.length - 1) {
+		STK.videoIndex = 0;
+	} else {
+		STK.videoIndex++;
+	}
+	STK._play();
+}
+STK.prev = function() {
+	if (STK.videoIndex === 0) {
+		STK.videoIndex = STK.videoList.length - 1;
+	} else {
+		STK.videoIndex--;
+	}
+	STK._play();
+}
+STK._play = function() {
+	STK.player.loadVideoById(STK.videoList[STK.videoIndex].youtube_id);
+	STK.highlight();
+}
 
-  <body>
-    <div id="fb-root"></div>
-    <script type="text/javascript">
-      window.fbAsyncInit = function() {
-        FB.init({
-          appId      : "<%= @app['id'] %>",                     // App ID
-          channelUrl : "<%= url_no_scheme('/channel.html') %>", // Channel File
-          status     : true,                                    // check login status
-          cookie     : true,                                    // enable cookies to allow the server to access the session
-          xfbml      : true                                     // parse XFBML
-        });
-        
-        FB.Canvas.setAutoGrow();
-        
-        // Call for this application login
-        STK.login();
-      };
+STK.highlight = function() {
+	$("tr").each(function() {
+		$(this).css("background-color", "");
+	});
+	$("#video_" + STK.videoIndex).css("background-color", "#DDFFFF");
+}
 
-      // Load the SDK Asynchronously
-      (function(d, s, id) {
-        var js, fjs = d.getElementsByTagName(s)[0];
-        if (d.getElementById(id)) return;
-        js = d.createElement(s); js.id = id;
-        js.src = "//connect.facebook.net/en_US/all.js";
-        fjs.parentNode.insertBefore(js, fjs);
-      }(document, 'script', 'facebook-jssdk'));
-    </script>
-    
-    <section class="clearfix">
-    	<div id="video"></div>
-    	<div id="video_control" style="display:none" class="clearfix">
+// Youtube player handlers
+function onYouTubePlayerReady() {
+	STK.player.addEventListener("onStateChange", "onYoutubePlayerStateChange");
+	STK.player.addEventListener("onError", "onYoutubeError");
+	STK.player.playVideo();
+}
+function onYoutubePlayerStateChange(newState) {
+	if (newState === 0) {
+		STK.next();
+	}
+}
+function onYoutubeError(event) {
+	STK.next();
+}
+</script>
+
+<!--[if IE]>
+  <script type="text/javascript">
+    var tags = ['header', 'section'];
+    while(tags.length)
+      document.createElement(tags.pop());
+  </script>
+<![endif]-->
+</head>
+
+<body>
+<div id="fb-root"></div>
+<script type="text/javascript">
+window.fbAsyncInit = function() {
+	FB.init({
+    	appId      : "<%= @app['id'] %>",                     // App ID
+		channelUrl : "<%= url_no_scheme('/channel.html') %>", // Channel File
+		status     : true,                                    // check login status
+		cookie     : true,                                    // enable cookies to allow the server to access the session
+		xfbml      : true                                     // parse XFBML
+	});
+
+	FB.Canvas.setAutoGrow();
+
+	// Call for this application login
+    STK.login();
+};
+
+// Load the SDK Asynchronously
+(function(d, s, id) {
+	var js, fjs = d.getElementsByTagName(s)[0];
+	if (d.getElementById(id)) return;
+	js = d.createElement(s); js.id = id;
+	js.src = "//connect.facebook.net/en_US/all.js";
+	fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));
+</script>
+
+<section>
+	<div style="width:750px;">
+		<div id="video"></div>
+		<div id="video_control" style="display:none">
 	    	<input type="button" id="prev" class="btn info" value="Prev" />
 	    	<input type="button" id="next" class="btn info" value="Next" />
-    	</div>
-    	<div style="margin-top: 20px;">
-    		<table id="list" class="condensed-table"></table>
-    	</div>
-    </section>
-  </body>
+		</div>
+		<div style="margin-top: 20px;">
+			<table id="play_list" class="condensed-table"></table>
+		</div>
+	</div>
+</section>
+</body>
 </html>
