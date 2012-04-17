@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes" />
+
+<title>ロックモリクエスト テスト</title>
+<link rel="stylesheet" href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css">
+
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/swfobject/2.2/swfobject.js"></script>
+
+<script type="text/javascript">
+var STK = {};
+
+STK.videoList;
+STK.videoIndex;
+STK.player;
+
+STK.init = function() {
+	STK.videoList = [];
+	STK.videoIndex = 0;
+	STK.player = null;
+	
+	// Create Youtube player and play
+	swfobject.embedSWF("http://www.youtube.com/v/Y_UmWdcTrrc?enablejsapi=1&version=3", 
+		"video", "760", "428", "8", null, null, { allowScriptAccess: "always" }, { id: "player" });
+
+	// Add event listener
+	$("#prev").click(function(){
+		STK.prev();
+	});
+	$("#next").click(function(){
+		STK.next();
+	});
+	
+	// Let's roll
+	STK.loadVideoList();
+	$("#video_control").css("display", "");
+}
+
+STK.loadVideoList = function() {
+	$.getJSON('http://search.twitter.com/search.json?callback=?', { q:'sngmr youtube' }, function(data) {
+		var feeds = data.results;
+		if (!feeds) {
+			return;
+		}
+		
+		var urlList = [];
+		var regTco = /((?:http|https):\/\/t\.co\/\w+)/;
+		var matches;
+		for (var i = 0, len = feeds.length; i < len; i++) {
+			matches = feeds[i].text.match(regTco);
+			if (matches !== null) {
+				urlList.push({
+					url: matches[1],
+					text: feeds[i].text,
+					from: {
+						name: feeds[i].from_user,
+						image_url: feeds[i].profile_image_url,
+					}
+				});
+			}
+		}
+
+		// XXX 飽きた		
+		for (var i = 0, len = urlList.length; i < len; i++) {
+			$.getJSON('http://www.longurlplease.com/api/v1.1?q=', function(urlHash) {
+				
+			});
+		}
+		
+		var videoList = [];
+		var feed, matches;
+		var reg = /(?:youtube\.com|youtu\.be).*(?:\/|v=)([0-9a-zA-Z-_]{11})/;
+		for (var i = 0, len = feeds.length; i < len; i++) {
+			feed = feeds[i];
+			
+			matches = feed.text.match(reg);
+			if (matches !== null) {
+				videoList.push({
+					youtube_id: matches[1],
+					message: feed.text,
+					from: {
+						name: feed.from_user,
+						image_url: feed.profile_image_url,
+					},
+				});
+			}
+		}
+		
+		// Create list
+		var html, emt;
+		for (var i = 0, len = videoList.length; i < len; i++) {
+			html = '<tr id="video_' + (STK.videoList.length + i) + '" style="cursor:pointer">';
+			html += '<td><img src="' + videoList[i].from.image_url + '" width="25" height="25"/></td>';
+			html += '<td>' + videoList[i].message + '</td>';
+			html += '</tr>';
+			
+			emt = $(html).click(STK.jump);
+			$("#play_list").append(emt);
+		}
+		
+		// Execute callback
+		STK.videoList = STK.videoList.concat(videoList);
+		if (callback && typeof callback === 'function') {
+			callback();
+		}
+	});	
+}
+
+STK.editScreen = function() {
+	$("tr").each(function() {
+		$(this).css("background-color", "");
+	});
+	$("#video_" + STK.videoIndex).css("background-color", "#333");
+	
+	// Scroll to position
+	var containerOffset = $("#play_list_container").offset().top;
+	var rowOffset = $("#video_" + STK.videoIndex).offset().top;
+	var scroll = rowOffset - containerOffset - 100;	// -100 is guessing :P
+	$("#play_list_container").animate({ scrollTop: '+=' + scroll + 'px' }, 'slow');
+	
+	$('#video_title').text(STK.videoList[STK.videoIndex].name);
+}
+
+STK.next = function() {
+	if (STK.videoIndex >= STK.videoList.length - 1) {
+		STK.videoIndex = 0;
+	} else {
+		STK.videoIndex++;
+	}
+	STK.play();
+}
+STK.prev = function() {
+	if (STK.videoIndex === 0) {
+		STK.videoIndex = STK.videoList.length - 1;
+	} else {
+		STK.videoIndex--;
+	}
+	STK.play();
+}
+STK.jump = function(event) {
+	var row = event.currentTarget || this;
+	var index = row.id.replace('video_', '');
+	STK.videoIndex = index - 0;
+	STK.play();
+}
+STK.play = function() {
+	STK.player.loadVideoById(STK.videoList[STK.videoIndex].youtube_id);
+	STK.editScreen();
+}
+
+// Youtube player handlers
+function onYouTubePlayerReady() {
+	STK.player = document.getElementById("player");
+	STK.player.addEventListener("onStateChange", "onYoutubePlayerStateChange");
+	STK.player.addEventListener("onError", "onYoutubeError");
+	STK.player.playVideo();
+}
+function onYoutubePlayerStateChange(newState) {
+	if (newState === 0) {
+		STK.next();
+	}
+}
+function onYoutubeError(event) {
+	STK.next();
+}
+
+$(function(){
+	STK.init();
+});
+
+</script>
+
+<!--[if IE]>
+<script type="text/javascript">
+  var tags = ['header', 'section'];
+  while(tags.length)
+    document.createElement(tags.pop());
+</script>
+<![endif]-->
+</head>
+
+<body style="background-color:#000;color:#CCC;">
+<section>
+	<div style="width:760px;padding-top:10px;margin:0 auto;">
+		<div id="video"></div>
+		<div id="video_control" style="display:none;padding:10px 0 13px 0;">
+	    	<input type="button" id="prev" class="btn" value=" < " style="width:40px;height:2em;padding:0;" />
+	    	<span id="video_title" style="display:inline-block;width:665px;padding-left:5px;font-weight:bold;font-size:1.2em;"></span>
+	    	<input type="button" id="next" class="btn" value=" > " style="width:40px;height:2em;padding:0;" />
+		</div>
+		<div id="play_list_container" style="height:400px;overflow:auto;">
+			<table id="play_list" class="condensed-table"></table>
+		</div>
+	</div>
+</section>
+</body>
+</html>

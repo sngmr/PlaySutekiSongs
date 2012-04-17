@@ -64,7 +64,6 @@ STK.init = function() {
 		// Create Youtube player and play
 		swfobject.embedSWF("http://www.youtube.com/v/" + STK.videoList[STK.videoIndex].youtube_id + "?enablejsapi=1&version=3", 
 			"video", "760", "428", "8", null, null, { allowScriptAccess: "always" }, { id: "player" });
-		STK.player = document.getElementById("player");
 			
 		// Add event listener
 		$("#prev").click(function(){
@@ -179,6 +178,7 @@ STK.play = function() {
 
 // Youtube player handlers
 function onYouTubePlayerReady() {
+	STK.player = document.getElementById("player");
 	STK.player.addEventListener("onStateChange", "onYoutubePlayerStateChange");
 	STK.player.addEventListener("onError", "onYoutubeError");
 	STK.player.playVideo();
