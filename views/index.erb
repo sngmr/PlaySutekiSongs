@@ -30,22 +30,18 @@
 <script type="text/javascript">
 var STK = {};
 
-STK.videoList = [];
-STK.videoIndex = 0;
-STK.player = null;
-
-var accessToken = null;
+STK.videoList;
+STK.videoIndex;
+STK.player;
 
 STK.login = function() {
     FB.getLoginStatus(function(response) {
         if (response.status === 'connected') {
         	STK.init();
-        	accessToken = response.authResponse.accessToken;
         } else {
             FB.login(function(response) {
                 if (response.authResponse) {
                 	STK.init();
-                	accessToken = response.authResponse.accessToken;
                 } else {
                     alert("Oops!! You need to login to Facebook, bro!!");
                 }
@@ -55,13 +51,44 @@ STK.login = function() {
 }
 
 STK.init = function() {
-	FB.api('/331943460187050/feed', function(response) {
-		var feeds = response.data;
-		if (!feeds || feeds.length === 0) {
-			alert('Oops!! There is no data available!!');
+	STK.videoList = [];
+	STK.videoIndex = 0;
+	STK.player = null;
+	
+	STK.loadVideoList(function() {
+		if (!STK.videoList || STK.videoList.length === 0) {
+			alert('Oops!! There is NO video available!!');
 			return;
 		}
+		
+		// Create Youtube player and play
+		swfobject.embedSWF("http://www.youtube.com/v/" + STK.videoList[STK.videoIndex].youtube_id + "?enablejsapi=1&version=3", 
+			"video", "750", "422", "8", null, null, { allowScriptAccess: "always" }, { id: "player" });
+		STK.player = document.getElementById("player");
+			
+		// Add event listener
+		$("#prev").click(function(){
+    		STK.prev();
+		});
+		$("#next").click(function(){
+    		STK.next();
+		});
+		
+		// Let's roll
+		$("#video_control").css("display", "");
+		STK.editScreen();
+	});
+}
 
+STK.loadVideoList = function(callback) {
+	FB.api('/331943460187050/feed?limit=100', function(response) {
+		var feeds = response.data;
+		if (!feeds) {
+			alert('Oops!! Something wrong data is coming from Facebook!!');
+			return;
+		}
+		
+		var videoList = [];
 		var feed, matches;		
 		var reg = /(?:youtube\.com|youtu\.be).*(?:\/|v=)([0-9a-zA-Z-_]{11})/;
 		for (var i = 0, len = feeds.length; i < len; i++) {
@@ -76,8 +103,9 @@ STK.init = function() {
 			}
 			
 			if (matches !== null) {
-				STK.videoList.push({
+				videoList.push({
 					youtube_id: matches[1],
+					name: feed.name || '',
 					message: feed.message,
 					from: {
 						id: feed.from.id,
@@ -86,38 +114,40 @@ STK.init = function() {
 				});
 			}
 		}
-		if (STK.videoList.length === 0) {
-			alert('Oops!! There is video available!!');
-			return;
+		
+		// Create list
+		var html, emt;
+		for (var i = 0, len = videoList.length; i < len; i++) {
+			html = '<tr id="video_' + (STK.videoList.length + i) + '" style="cursor:pointer">';
+			html += '<td><img src="https://graph.facebook.com/' + videoList[i].from.id + '/picture?type=normal" width="25" height="25"/></td>';
+			html += '<td>' + videoList[i].message + '</td>';
+			html += '</tr>';
+			
+			emt = $(html).click(STK.jump);
+			$("#play_list").append(emt);
 		}
 		
-		// Create Youtube player and play
-		swfobject.embedSWF("http://www.youtube.com/v/" + STK.videoList[STK.videoIndex].youtube_id + "?enablejsapi=1&version=3", 
-			"video", "750", "422", "8", null, null, { allowScriptAccess: "always" }, { id: "player" });
-		STK.player = document.getElementById("player");
-			
-		// Create list
-		var html = "";
-		$.each(STK.videoList, function(i, value) {
-			html += '<tr id="video_' + i + '">';
-			html += '<td><img src="https://graph.facebook.com/' + value.from.id + '/picture?type=normal" width="25" height="25"/></td>';
-			html += '<td>' + value.message + '</td>';
-			html += '</tr>';
-		});
-		$("#play_list").html(html);
-		
-		// Add event listener
-		$("#prev").click(function(){
-    		STK.prev();
-		});
-		$("#next").click(function(){
-    		STK.next();
-		});
-		
-		// Let's roll
-		$("#video_control").css("display", "");
-		STK.highlight();
+		// Execute callback
+		STK.videoList = STK.videoList.concat(videoList);
+		if (callback && typeof callback === 'function') {
+			callback();
+		}
+	});	
+}
+
+STK.editScreen = function() {
+	$("tr").each(function() {
+		$(this).css("background-color", "");
 	});
+	$("#video_" + STK.videoIndex).css("background-color", "#333");
+	
+	// Scroll to position
+	var containerOffset = $("#play_list_container").offset().top;
+	var rowOffset = $("#video_" + STK.videoIndex).offset().top;
+	var scroll = rowOffset - containerOffset - 100;	// -100 is guessing :P
+	$("#play_list_container").animate({ scrollTop: '+=' + scroll + 'px' }, 'slow');
+	
+	$('#video_title').text(STK.videoList[STK.videoIndex].name);
 }
 
 STK.next = function() {
@@ -126,7 +156,7 @@ STK.next = function() {
 	} else {
 		STK.videoIndex++;
 	}
-	STK._play();
+	STK.play();
 }
 STK.prev = function() {
 	if (STK.videoIndex === 0) {
@@ -134,18 +164,17 @@ STK.prev = function() {
 	} else {
 		STK.videoIndex--;
 	}
-	STK._play();
+	STK.play();
 }
-STK._play = function() {
+STK.jump = function(event) {
+	var row = event.currentTarget || this;
+	var index = row.id.replace('video_', '');
+	STK.videoIndex = index - 0;
+	STK.play();
+}
+STK.play = function() {
 	STK.player.loadVideoById(STK.videoList[STK.videoIndex].youtube_id);
-	STK.highlight();
-}
-
-STK.highlight = function() {
-	$("tr").each(function() {
-		$(this).css("background-color", "");
-	});
-	$("#video_" + STK.videoIndex).css("background-color", "#DDFFFF");
+	STK.editScreen();
 }
 
 // Youtube player handlers
@@ -173,7 +202,7 @@ function onYoutubeError(event) {
 <![endif]-->
 </head>
 
-<body>
+<body style="background-color:#000;color:#CCC;">
 <div id="fb-root"></div>
 <script type="text/javascript">
 window.fbAsyncInit = function() {
@@ -202,13 +231,14 @@ window.fbAsyncInit = function() {
 </script>
 
 <section>
-	<div style="width:750px;">
+	<div style="width:750px;padding-top:10px;">
 		<div id="video"></div>
-		<div id="video_control" style="display:none">
-	    	<input type="button" id="prev" class="btn info" value="Prev" />
-	    	<input type="button" id="next" class="btn info" value="Next" />
+		<div id="video_control" style="display:none;padding:10px 0 13px 0;">
+	    	<input type="button" id="prev" class="btn" value=" < " style="width:40px;height:2em;padding:0;" />
+	    	<span id="video_title" style="display:inline-block;width:655px;padding-left:5px;font-weight:bold;font-size:1.2em;">hogehoehoge</span>
+	    	<input type="button" id="next" class="btn" value=" > " style="width:40px;height:2em;padding:0;" />
 		</div>
-		<div style="margin-top: 20px;">
+		<div id="play_list_container" style="height:400px;overflow:auto;">
 			<table id="play_list" class="condensed-table"></table>
 		</div>
 	</div>
