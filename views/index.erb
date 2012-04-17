@@ -63,7 +63,7 @@ STK.init = function() {
 		
 		// Create Youtube player and play
 		swfobject.embedSWF("http://www.youtube.com/v/" + STK.videoList[STK.videoIndex].youtube_id + "?enablejsapi=1&version=3", 
-			"video", "750", "422", "8", null, null, { allowScriptAccess: "always" }, { id: "player" });
+			"video", "760", "428", "8", null, null, { allowScriptAccess: "always" }, { id: "player" });
 		STK.player = document.getElementById("player");
 			
 		// Add event listener
@@ -231,11 +231,11 @@ window.fbAsyncInit = function() {
 </script>
 
 <section>
-	<div style="width:750px;padding-top:10px;">
+	<div style="width:760px;padding-top:10px;">
 		<div id="video"></div>
 		<div id="video_control" style="display:none;padding:10px 0 13px 0;">
 	    	<input type="button" id="prev" class="btn" value=" < " style="width:40px;height:2em;padding:0;" />
-	    	<span id="video_title" style="display:inline-block;width:655px;padding-left:5px;font-weight:bold;font-size:1.2em;">hogehoehoge</span>
+	    	<span id="video_title" style="display:inline-block;width:665px;padding-left:5px;font-weight:bold;font-size:1.2em;">hogehoehoge</span>
 	    	<input type="button" id="next" class="btn" value=" > " style="width:40px;height:2em;padding:0;" />
 		</div>
 		<div id="play_list_container" style="height:400px;overflow:auto;">
