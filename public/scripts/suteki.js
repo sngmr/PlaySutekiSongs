@@ -66,7 +66,7 @@ STK.loadVideoList = function(callback) {
 			if (matches !== null) {
 				return {
 					youtubeId: matches[1],
-					name: data.name || '',
+					name: data.name || '　',
 					message: data.message,
 					from: {
 						id: data.from.id,
