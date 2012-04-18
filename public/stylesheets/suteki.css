@@ -12,7 +12,7 @@ div#video {
 	height: 428px;
 }
 div#video_control_container {
-	padding:10px 3px 13px 0;
+	padding:10px 0 13px 3px;
 }
 input[type="button"].btn.video_control {
 	width:38px;
@@ -23,15 +23,30 @@ input[type="button"].btn.video_control {
 }
 span#video_title {
 	display:inline-block;
-	width:660px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	width:548px;
 	padding-left:5px;
 	line-height: 2em;
 	font-weight:bold;
 	font-size:1.2em;
 }
+span#playlikes {
+	cursor:pointer;
+	opacity: 0.5;
+	width: 110px;
+	display:inline-block;
+}
+span#playlikes .disable {
+	opacity: 0.1;
+}
 div#play_list_container {
-	height:300px;
-	overflow:auto;
+	width: 100%;
+	height:350px;
+	overflow: auto;
+}
+table#play_list {
+	width: 100%;
 }
 tr.play_list_row {
 	cursor:pointer;
@@ -39,8 +54,15 @@ tr.play_list_row {
 tr.play_list_row.selected {
 	background-color: #333;
 }
+tr.play_list_row.disable {
+	opacity: 0.3;
+}
 tr.play_list_row td {
 	border-top: 1px solid #333;
+}
+tr.play_list_row td.user_image {
+}
+tr.play_list_row td.message {
 }
 tr.play_list_row.feed td.user_image {
 }
@@ -50,7 +72,7 @@ tr.play_list_row.comment td.user_image {
 	text-align: right;
 }
 tr.play_list_row.comment td.message {
-	padding-left: 30px;
+	padding-left: 20px;
 }
 tr.play_list_row.feed td img {
 	width: 40px;

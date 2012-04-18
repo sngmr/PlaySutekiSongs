@@ -32,10 +32,13 @@ $(function(){
 		
 	// Add event listener
 	$("#prev").click(function(){
-		STK.prev();
+		STK.prev(true);
 	});
 	$("#next").click(function(){
-		STK.next();
+		STK.next(true);
+	});
+	$("#playlikes").click(function(){
+		STK.togglePlayLikes();
 	});
 });
 
@@ -49,7 +52,7 @@ function onYouTubePlayerReady() {
 }
 function onYoutubePlayerStateChange(newState) {
 	if (newState === 0) {
-		STK.next();
+		STK.next(true);
 	}
 }
 function onYoutubeError(event) {
@@ -91,6 +94,7 @@ window.fbAsyncInit = function() {
     	<input type="button" id="prev" class="btn video_control" value="▲" />
     	<input type="button" id="next" class="btn video_control" value="▼" />
     	<span id="video_title"></span>
+    	<span id="playlikes" class="label disable">ONLY PLAY YOU LIKE!</span>
 	</div>
 	<div id="play_list_container" style="opacity:0">
 		<table id="play_list" class="condensed-table"></table>
