@@ -3,13 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes" />
-
 <title><%= @app['name'] %></title>
-<link rel="stylesheet" href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css">
-
-<!--[if IEMobile]>
-<link rel="stylesheet" href="mobile.css" media="screen" type="text/css"  />
-<![endif]-->
 
 <!-- These are Open Graph tags.  They add meta data to your  -->
 <!-- site that facebook uses when your content is shared     -->
@@ -24,177 +18,26 @@
 <meta property="og:description" content="Play all Youtube video published on Facebook feed." />
 <meta property="fb:app_id" content="<%= @app['name'] %>" />
 
+<link rel="stylesheet" href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css">
+<link rel="stylesheet" href="/stylesheets/suteki.css">
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/swfobject/2.2/swfobject.js"></script>
+<script type="text/javascript" src="/scripts/suteki.js"></script>
 
 <script type="text/javascript">
-var STK = {};
-
-STK.videoList;
-STK.videoIndex;
-STK.player;
-
-STK.login = function() {
-    FB.getLoginStatus(function(response) {
-        if (response.status === 'connected') {
-        	STK.init();
-        } else {
-            FB.login(function(response) {
-                if (response.authResponse) {
-                	STK.init();
-                } else {
-                    alert("Oops!! You need to login to Facebook, bro!!");
-                }
-            }, {scope: 'user_groups'});
-        }
-    });
-}
-
-STK.init = function() {
-	STK.videoList = [];
-	STK.videoIndex = 0;
-	STK.player = null;
-	
-	STK.loadVideoList(function() {
-		if (!STK.videoList || STK.videoList.length === 0) {
-			alert('Oops!! There is NO video available!!');
-			return;
-		}
+$(function(){
+	// Create Youtube player and play
+	swfobject.embedSWF("http://www.youtube.com/v/Pv7Es_V9zXE?enablejsapi=1&version=3", 
+		"video", "760", "428", "8", null, null, { allowScriptAccess: "always" }, { id: "player" });
 		
-		// Create Youtube player and play
-		swfobject.embedSWF("http://www.youtube.com/v/" + STK.videoList[STK.videoIndex].youtube_id + "?enablejsapi=1&version=3", 
-			"video", "760", "428", "8", null, null, { allowScriptAccess: "always" }, { id: "player" });
-			
-		// Add event listener
-		$("#prev").click(function(){
-    		STK.prev();
-		});
-		$("#next").click(function(){
-    		STK.next();
-		});
-		
-		// Let's roll
-		$("#video_control").css("display", "");
-		STK.editScreen();
+	// Add event listener
+	$("#prev").click(function(){
+		STK.prev();
 	});
-}
-
-STK.loadVideoList = function(callback) {
-	FB.api('/331943460187050/feed?limit=100', function(response) {
-		var feeds = response.data;
-		if (!feeds) {
-			alert('Oops!! Something wrong data is coming from Facebook!!');
-			return;
-		}
-		
-		var regYoutube = /(?:youtube\.com|youtu\.be).*(?:\/|v=)([0-9a-zA-Z-_]{11})/;
-		var getYoutubeData = function(data) {
-			var matches = null;
-			if (data.type === 'video') {
-				matches = data.source.match(regYoutube);
-			} else if (data.type === 'link') {
-				matches = data.link.match(regYoutube);
-			} else {
-				matches = data.message.match(regYoutube);
-			}
-			
-			if (matches !== null) {
-				return {
-					youtube_id: matches[1],
-					name: data.name || '',
-					message: data.message,
-					from: {
-						id: data.from.id,
-						name: data.from.name,
-					}
-				};
-			} else {
-				return null;
-			}
-		}
-		
-		var videoList = [];
-		var youtubeData;
-		for (var i = 0, ilen = feeds.length; i < ilen; i++) {
-			// Get Youtube video id
-			youtubeData = getYoutubeData(feeds[i]);
-			if (youtubeData) {
-				videoList.push(youtubeData);
-			}
-			
-			// Search comments as well
-			if (feeds[i].comments && feeds[i].comments.count > 0) {
-				for (var j = 0, jlen = feeds[i].comments.data.length; j < jlen; j++) {
-					youtubeData = getYoutubeData(feeds[i].comments.data[j]);
-					if (youtubeData) {
-						youtubeData.isComment = true;	// Mark as comment
-						videoList.push(youtubeData);
-					}
-				}
-			}
-		}
-		
-		// Create list
-		var emt, tr, td1, td2, td3, img;
-		for (var i = 0, len = videoList.length; i < len; i++) {
-			tr = $('<tr></tr>').attr('id', 'video_' + (STK.videoList.length + i)).css('cursor', 'pointer').click(STK.jump);
-			td1 = $('<td></td>');
-			img = $('<img />').attr('width', 25).attr('height', 25).attr('src', 'https://graph.facebook.com/' + videoList[i].from.id + '/picture?type=normal');
-			td2 = $('<td></td>').text(videoList[i].message);
-			
-			tr.append(td1.append(img)).append(td2);
-			$("#play_list").append(tr);
-		}
-		
-		// Execute callback
-		STK.videoList = STK.videoList.concat(videoList);
-		if (callback && typeof callback === 'function') {
-			callback();
-		}
-	});	
-}
-
-STK.editScreen = function() {
-	$("tr").each(function() {
-		$(this).css("background-color", "");
+	$("#next").click(function(){
+		STK.next();
 	});
-	$("#video_" + STK.videoIndex).css("background-color", "#333");
-	
-	// Scroll to position
-	var containerOffset = $("#play_list_container").offset().top;
-	var rowOffset = $("#video_" + STK.videoIndex).offset().top;
-	var scroll = rowOffset - containerOffset - 100;	// -100 is guessing :P
-	$("#play_list_container").animate({ scrollTop: '+=' + scroll + 'px' }, 'slow');
-	
-	$('#video_title').text(STK.videoList[STK.videoIndex].name);
-}
-
-STK.next = function() {
-	if (STK.videoIndex >= STK.videoList.length - 1) {
-		STK.videoIndex = 0;
-	} else {
-		STK.videoIndex++;
-	}
-	STK.play();
-}
-STK.prev = function() {
-	if (STK.videoIndex === 0) {
-		STK.videoIndex = STK.videoList.length - 1;
-	} else {
-		STK.videoIndex--;
-	}
-	STK.play();
-}
-STK.jump = function(event) {
-	var row = event.currentTarget || this;
-	var index = row.id.replace('video_', '');
-	STK.videoIndex = index - 0;
-	STK.play();
-}
-STK.play = function() {
-	STK.player.loadVideoById(STK.videoList[STK.videoIndex].youtube_id);
-	STK.editScreen();
-}
+});
 
 // Youtube player handlers
 function onYouTubePlayerReady() {
@@ -202,6 +45,7 @@ function onYouTubePlayerReady() {
 	STK.player.addEventListener("onStateChange", "onYoutubePlayerStateChange");
 	STK.player.addEventListener("onError", "onYoutubeError");
 	STK.player.playVideo();
+	STK.ready();
 }
 function onYoutubePlayerStateChange(newState) {
 	if (newState === 0) {
@@ -209,20 +53,11 @@ function onYoutubePlayerStateChange(newState) {
 	}
 }
 function onYoutubeError(event) {
-	STK.next();
+	STK.error();
 }
 </script>
 
-<!--[if IE]>
-  <script type="text/javascript">
-    var tags = ['header', 'section'];
-    while(tags.length)
-      document.createElement(tags.pop());
-  </script>
-<![endif]-->
-</head>
-
-<body style="background-color:#000;color:#CCC;">
+<body>
 <div id="fb-root"></div>
 <script type="text/javascript">
 window.fbAsyncInit = function() {
@@ -250,18 +85,16 @@ window.fbAsyncInit = function() {
 }(document, 'script', 'facebook-jssdk'));
 </script>
 
-<section>
-	<div style="width:760px;padding-top:10px;margin:0 auto;">
-		<div id="video"></div>
-		<div id="video_control" style="display:none;padding:10px 0 13px 0;">
-	    	<input type="button" id="prev" class="btn" value="△" style="width:40px;height:2em;padding:0;" />
-	    	<span id="video_title" style="display:inline-block;width:665px;padding-left:5px;font-weight:bold;font-size:1.2em;">hogehoehoge</span>
-	    	<input type="button" id="next" class="btn" value="▽" style="width:40px;height:2em;padding:0;" />
-		</div>
-		<div id="play_list_container" style="height:400px;overflow:auto;">
-			<table id="play_list" class="condensed-table"></table>
-		</div>
+<div id="wrapper">
+	<div id="video"></div>	<!-- Will remove by swfobject.embedSWF -->
+	<div id="video_control_container" style="opacity:0">
+    	<input type="button" id="prev" class="btn video_control" value="△" />
+    	<span id="video_title"></span>
+    	<input type="button" id="next" class="btn video_control" value="▽" />
 	</div>
-</section>
+	<div id="play_list_container" style="opacity:0">
+		<table id="play_list" class="condensed-table"></table>
+	</div>
+</div>
 </body>
 </html>

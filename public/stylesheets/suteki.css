@@ -1,0 +1,60 @@
+body {
+	background-color:#000;
+	color:#CCC;
+}
+div#wrapper {
+	width:760px;
+	padding-top:10px;
+	margin:0 auto;
+}
+div#video {
+	width: 760px;
+	height: 428px;
+}
+div#video_control_container {
+	padding:10px 0 13px 0;
+}
+span#video_title {
+	display:inline-block;
+	width:667px;
+	padding-left:5px;
+	line-height: 2em;
+	font-weight:bold;
+	font-size:1.2em;
+}
+input[type="button"].btn.video_control {
+	width:40px;
+	height:2em;
+	padding:0;
+}
+div#play_list_container {
+	height:300px;
+	overflow:auto;
+}
+tr.play_list_row {
+	cursor:pointer;
+}
+tr.play_list_row.selected {
+	background-color: #333;
+}
+tr.play_list_row td {
+	border-top: 1px solid #333;
+}
+tr.play_list_row.feed td.user_image {
+}
+tr.play_list_row.feed td.message {
+}
+tr.play_list_row.comment td.user_image {
+	text-align: right;
+}
+tr.play_list_row.comment td.message {
+	padding-left: 30px;
+}
+tr.play_list_row.feed td img {
+	width: 40px;
+	height: 40px;
+}
+tr.play_list_row.comment td img {
+	width: 30px;
+	height: 30px;
+}
