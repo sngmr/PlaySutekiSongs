@@ -87,43 +87,63 @@ STK.loadVideoList = function(callback) {
 			return;
 		}
 		
-		var videoList = [];
-		var feed, matches;		
-		var reg = /(?:youtube\.com|youtu\.be).*(?:\/|v=)([0-9a-zA-Z-_]{11})/;
-		for (var i = 0, len = feeds.length; i < len; i++) {
-			feed = feeds[i];
-			
-			// Get Youtube video id
-			matches = null;
-			if (feed.type === 'video') {
-				matches = feed.source.match(reg);
-			} else if (feed.type === 'link') {
-				matches = feed.link.match(reg);
+		var regYoutube = /(?:youtube\.com|youtu\.be).*(?:\/|v=)([0-9a-zA-Z-_]{11})/;
+		var getYoutubeData = function(data) {
+			var matches = null;
+			if (data.type === 'video') {
+				matches = data.source.match(regYoutube);
+			} else if (data.type === 'link') {
+				matches = data.link.match(regYoutube);
+			} else {
+				matches = data.message.match(regYoutube);
 			}
 			
 			if (matches !== null) {
-				videoList.push({
+				return {
 					youtube_id: matches[1],
-					name: feed.name || '',
-					message: feed.message,
+					name: data.name || '',
+					message: data.message,
 					from: {
-						id: feed.from.id,
-						name: feed.from.name,
-					},
-				});
+						id: data.from.id,
+						name: data.from.name,
+					}
+				};
+			} else {
+				return null;
+			}
+		}
+		
+		var videoList = [];
+		var youtubeData;
+		for (var i = 0, ilen = feeds.length; i < ilen; i++) {
+			// Get Youtube video id
+			youtubeData = getYoutubeData(feeds[i]);
+			if (youtubeData) {
+				videoList.push(youtubeData);
+			}
+			
+			// Search comments as well
+			if (feeds[i].comments && feeds[i].comments.count > 0) {
+				for (var j = 0, jlen = feeds[i].comments.data.length; j < jlen; j++) {
+					youtubeData = getYoutubeData(feeds[i].comments.data[j]);
+					if (youtubeData) {
+						youtubeData.isComment = true;	// Mark as comment
+						videoList.push(youtubeData);
+					}
+				}
 			}
 		}
 		
 		// Create list
-		var html, emt;
+		var emt, tr, td1, td2, td3, img;
 		for (var i = 0, len = videoList.length; i < len; i++) {
-			html = '<tr id="video_' + (STK.videoList.length + i) + '" style="cursor:pointer">';
-			html += '<td><img src="https://graph.facebook.com/' + videoList[i].from.id + '/picture?type=normal" width="25" height="25"/></td>';
-			html += '<td>' + videoList[i].message + '</td>';
-			html += '</tr>';
+			tr = $('<tr></tr>').attr('id', 'video_' + (STK.videoList.length + i)).css('cursor', 'pointer').click(STK.jump);
+			td1 = $('<td></td>');
+			img = $('<img />').attr('width', 25).attr('height', 25).attr('src', 'https://graph.facebook.com/' + videoList[i].from.id + '/picture?type=normal');
+			td2 = $('<td></td>').text(videoList[i].message);
 			
-			emt = $(html).click(STK.jump);
-			$("#play_list").append(emt);
+			tr.append(td1.append(img)).append(td2);
+			$("#play_list").append(tr);
 		}
 		
 		// Execute callback
@@ -234,9 +254,9 @@ window.fbAsyncInit = function() {
 	<div style="width:760px;padding-top:10px;margin:0 auto;">
 		<div id="video"></div>
 		<div id="video_control" style="display:none;padding:10px 0 13px 0;">
-	    	<input type="button" id="prev" class="btn" value=" < " style="width:40px;height:2em;padding:0;" />
+	    	<input type="button" id="prev" class="btn" value="△" style="width:40px;height:2em;padding:0;" />
 	    	<span id="video_title" style="display:inline-block;width:665px;padding-left:5px;font-weight:bold;font-size:1.2em;">hogehoehoge</span>
-	    	<input type="button" id="next" class="btn" value=" > " style="width:40px;height:2em;padding:0;" />
+	    	<input type="button" id="next" class="btn" value="▽" style="width:40px;height:2em;padding:0;" />
 		</div>
 		<div id="play_list_container" style="height:400px;overflow:auto;">
 			<table id="play_list" class="condensed-table"></table>
