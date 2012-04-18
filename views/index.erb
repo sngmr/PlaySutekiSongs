@@ -32,13 +32,13 @@ $(function(){
 		
 	// Add event listener
 	$("#prev").click(function(){
-		STK.prev(true);
+		STK.prev();
 	});
 	$("#next").click(function(){
-		STK.next(true);
+		STK.next();
 	});
-	$("#playlikes").click(function(){
-		STK.togglePlayLikes();
+	$("#mode").click(function(){
+		STK.togglePlayMode();
 	});
 });
 
@@ -52,7 +52,7 @@ function onYouTubePlayerReady() {
 }
 function onYoutubePlayerStateChange(newState) {
 	if (newState === 0) {
-		STK.next(true);
+		STK.next();
 	}
 }
 function onYoutubeError(event) {
@@ -94,11 +94,14 @@ window.fbAsyncInit = function() {
     	<input type="button" id="prev" class="btn video_control" value="▲" />
     	<input type="button" id="next" class="btn video_control" value="▼" />
     	<span id="video_title"></span>
-    	<span id="playlikes" class="label disable">ONLY PLAY YOU LIKE!</span>
+    	<span id="mode" class="label">NORMAL</span>
 	</div>
 	<div id="play_list_container" style="opacity:0">
 		<table id="play_list" class="condensed-table"></table>
 	</div>
+	<div id="go_suteki" style="opacity:0">
+		<a href="https://www.facebook.com/groups/331943460187050/" target="_blank">Go とっても素敵なグループ</a>
+	<div>
 </div>
 </body>
 </html>

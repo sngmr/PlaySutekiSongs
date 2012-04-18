@@ -1,10 +1,14 @@
 var STK = {};
 
+STK.PLAYMODE_NORMAL = 0;
+STK.PLAYMODE_RANDOM = 1;
+STK.PLAYMODE_ONLYLIKE = 2;
+
 STK.player = null;
 STK.latch = 0;
 STK.userId = null;
-STK.playOnlyYouLike = false;
 STK.alreadyCheckCommentLike = false;
+STK.playMode = 0;
 
 STK.videoList;
 STK.videoIndex;
@@ -47,6 +51,7 @@ STK.start = function() {
 		// Let's roll
 		$('#video_control_container').animate({ opacity: 1 }, 1000);
 		$('#play_list_container').animate({ opacity: 1 }, 1000);
+		$('#go_suteki').animate({ opacity: 1 }, 1000);
 		STK.play();
 	});
 }
@@ -170,23 +175,30 @@ STK.editScreen = function() {
 	$('#video_title').text(STK.videoList[STK.videoIndex].name);
 }
 
-STK.togglePlayLikes = function() {
-	var btn = $('#playlikes');
-	if (btn.hasClass('disable')) {
-		btn.removeClass('disable');
-		btn.addClass('notice');
-		STK.playOnlyYouLike = true;
-	} else {
-		btn.addClass('disable');
+STK.togglePlayMode = function() {
+	// mode order is NORMAL(-)=>RANDOM(success)=>ONLY YOU LIKE(notice)
+	var btn = $('#mode');
+	
+	if (btn.hasClass('notice')) {
 		btn.removeClass('notice');
-		STK.playOnlyYouLike = false;
+		btn.text('NORMAL');
+		STK.playMode = STK.PLAYMODE_NORMAL;
+	} else if (btn.hasClass('success')) {
+		btn.removeClass('success');
+		btn.addClass('notice');
+		btn.text('ONLY YOU LIKE');
+		STK.playMode = STK.PLAYMODE_ONLYLIKE;
+	} else {
+		btn.addClass('success');
+		btn.text('RANDOM');
+		STK.playMode = STK.PLAYMODE_RANDOM;
 	}
 	
 	$("tr.play_list_row").each(function() {
 		STK.editRowPlayLikes(this);
 	});
 	
-	if (STK.playOnlyYouLike && !STK.alreadyCheckCommentLike) {
+	if (STK.playMode === STK.PLAYMODE_ONLYLIKE && !STK.alreadyCheckCommentLike) {
 		STK.alreadyCheckCommentLike = true;
 		STK.startGetCommentsLike();
 	}
@@ -194,7 +206,7 @@ STK.togglePlayLikes = function() {
 
 STK.editRowPlayLikes = function(row) {
 	$(row).removeClass('disable');
-	if (STK.playOnlyYouLike) {
+	if (STK.playMode === STK.PLAYMODE_ONLYLIKE) {
 		var index = (row.id.replace('video_', '') - 0);
 		if (!STK.videoList[index].isYouLike) {
 			$(row).addClass('disable');
@@ -217,6 +229,19 @@ STK.startGetCommentsLike = function() {
 STK.getCommentsLike = function() {
 	if (STK.workVideoIndexList.length === 0) {
 		STK.alreadyCheckCommentLike = true;
+		
+		// Warn if user dosen't have any like and post
+		var gotcha = false;
+		for (var i = 0, len = STK.videoList.length; i < len; i++) {
+			if (STK.videoList[i].isYouLike) {
+				gotcha = true;
+				break;
+			}
+		}
+		if (!gotcha) {
+			alert("Ooops!! You don't have any like and posted by you. Go back to normal mode.");
+			STK.togglePlayMode();
+		}
 		return;
 	}
 	
@@ -234,40 +259,36 @@ STK.play = function() {
 	STK.player.loadVideoById(STK.videoList[STK.videoIndex].youtubeId);
 	STK.editScreen();
 }
-STK.next = function(isAutoPlay) {
-	if (STK.videoIndex >= STK.videoList.length - 1) {
+STK.next = function() {
+	if (STK.playMode === STK.PLAYMODE_RANDOM) {
+		STK.videoIndex = Math.floor(Math.random() * STK.videoList.length);
+	} else if (STK.videoIndex >= STK.videoList.length - 1) {
 		STK.videoIndex = 0;
 	} else {
 		STK.videoIndex++;
 	}
 	
-	if (isAutoPlay && STK.playOnlyYouLike && !STK.videoList[STK.videoIndex].isYouLike) {
-		STK.next(isAutoPlay);
-		return;
-	}
-	
-	if (STK.videoList[STK.videoIndex].isError) {
-		STK.next(isAutoPlay);
-		return;
+	if (STK.playMode === STK.PLAYMODE_ONLYLIKE && !STK.videoList[STK.videoIndex].isYouLike) {
+		STK.next();
+	} else if (STK.videoList[STK.videoIndex].isError) {
+		STK.next();
 	} else {
 		STK.play();
 	}
 }
-STK.prev = function(isAutoPlay) {
-	if (STK.videoIndex === 0) {
+STK.prev = function() {
+	if (STK.playMode === STK.PLAYMODE_RANDOM) {
+		STK.videoIndex = Math.floor(Math.random() * STK.videoList.length);
+	} else if (STK.videoIndex === 0) {
 		STK.videoIndex = STK.videoList.length - 1;
 	} else {
 		STK.videoIndex--;
 	}
 
-	if (isAutoPlay && STK.playOnlyYouLike && !STK.videoList[STK.videoIndex].isYouLike) {
-		STK.prev(isAutoPlay);
-		return;
-	}
-	
-	if (STK.videoList[STK.videoIndex].isError) {
-		STK.prev(isAutoPlay);
-		return;
+	if (STK.playMode === STK.PLAYMODE_ONLYLIKE && !STK.videoList[STK.videoIndex].isYouLike) {
+		STK.prev();
+	} else if (STK.videoList[STK.videoIndex].isError) {
+		STK.prev();
 	} else {
 		STK.play();
 	}
