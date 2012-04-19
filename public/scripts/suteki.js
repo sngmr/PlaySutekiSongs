@@ -8,7 +8,7 @@ STK.player = null;
 STK.latch = 0;
 STK.userId = null;
 STK.alreadyCheckCommentLike = false;
-STK.playMode = 0;
+STK.playMode = STK.PLAYMODE_NORMAL;
 
 STK.videoList;
 STK.videoIndex;
@@ -175,32 +175,42 @@ STK.editScreen = function() {
 	$('#video_title').text(STK.videoList[STK.videoIndex].name);
 }
 
-STK.togglePlayMode = function() {
+STK.togglePlayMode = function(toMode) {
 	// mode order is NORMAL(-)=>RANDOM(success)=>ONLY YOU LIKE(notice)
-	var btn = $('#mode');
-	
-	if (btn.hasClass('notice')) {
-		btn.removeClass('notice');
-		btn.text('NORMAL');
-		STK.playMode = STK.PLAYMODE_NORMAL;
-	} else if (btn.hasClass('success')) {
-		btn.removeClass('success');
-		btn.addClass('notice');
-		btn.text('ONLY YOU LIKE');
-		STK.playMode = STK.PLAYMODE_ONLYLIKE;
+	var addClass, modeLabel;
+	if (STK.playMode === STK.PLAYMODE_NORMAL || toMode === STK.PLAYMODE_RANDOM) {
+		toMode = STK.PLAYMODE_RANDOM;
+		modeLabel = 'RANDOM';
+		addClass = 'success';
+	} else if (STK.playMode === STK.PLAYMODE_RANDOM || toMode === STK.PLAYMODE_ONLYLIKE) {
+		toMode = STK.PLAYMODE_ONLYLIKE;
+		modeLabel = 'ONLY YOU LIKE';
+		addClass = 'notice';
 	} else {
-		btn.addClass('success');
-		btn.text('RANDOM');
-		STK.playMode = STK.PLAYMODE_RANDOM;
+		toMode = STK.PLAYMODE_NORMAL;
+		modeLabel = 'NORMAL';
+		addClass = '';
 	}
+	
+	var btn = $('#mode');
+	btn.text(modeLabel);
+	btn.removeClass('success');
+	btn.removeClass('notice');
+	btn.addClass(addClass);
+	STK.playMode = toMode;
 	
 	$("tr.play_list_row").each(function() {
 		STK.editRowPlayLikes(this);
 	});
 	
 	if (STK.playMode === STK.PLAYMODE_ONLYLIKE && !STK.alreadyCheckCommentLike) {
-		STK.alreadyCheckCommentLike = true;
-		STK.startGetCommentsLike();
+		// Avoid useless HTTP connection when user just toggle to 
+		// ONLY YOU LIKE mode and leave it.
+		setTimeout(function() {
+			if (STK.playMode === STK.PLAYMODE_ONLYLIKE) {
+				STK.startGetCommentsLike();
+			}
+		}, 3000);
 	}
 }
 
@@ -216,6 +226,7 @@ STK.editRowPlayLikes = function(row) {
 
 STK.startGetCommentsLike = function() {
 	STK.workVideoIndexList = [];
+	
 	for (var i = 0, len = STK.videoList.length; i < len; i++) {
 		if (STK.videoList[i].isComment) {
 			STK.workVideoIndexList.push(i);
@@ -227,9 +238,11 @@ STK.startGetCommentsLike = function() {
 }
 
 STK.getCommentsLike = function() {
+	// When start this method, nobody stop collecting comments like,
+	// so flag to on to avoiding duplicate launch.
+	STK.alreadyCheckCommentLike = true;
+	
 	if (STK.workVideoIndexList.length === 0) {
-		STK.alreadyCheckCommentLike = true;
-		
 		// Warn if user dosen't have any like and post
 		var gotcha = false;
 		for (var i = 0, len = STK.videoList.length; i < len; i++) {
@@ -240,7 +253,7 @@ STK.getCommentsLike = function() {
 		}
 		if (!gotcha) {
 			alert("Ooops!! You don't have any like and posted by you. Go back to normal mode.");
-			STK.togglePlayMode();
+			STK.togglePlayMode(STK.PLAYMODE_NORMAL);
 		}
 		return;
 	}
@@ -251,7 +264,7 @@ STK.getCommentsLike = function() {
 			STK.videoList[targetIndex].isYouLike = true;
 			STK.editRowPlayLikes(document.getElementById('video_' + targetIndex));
 		}
-		setTimeout(STK.getCommentsLike, 500);
+		setTimeout(STK.getCommentsLike, 1000);
 	});
 }
 
@@ -310,5 +323,5 @@ STK.error = function() {
 	// Add error flag
 	STK.videoList[STK.videoIndex].isError = true;
 	
-	STK.next();
+	setTimeout(STK.next, 3000);
 }
