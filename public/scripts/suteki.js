@@ -111,21 +111,26 @@ STK.loadVideoList = function(callback) {
 		var videoList = [];
 		var youtubeData;
 		for (var i = 0, ilen = feeds.length; i < ilen; i++) {
-			// Get Youtube video id
-			youtubeData = getYoutubeData(feeds[i]);
-			if (youtubeData) {
-				videoList.push(youtubeData);
-			}
-			
-			// Search comments as well
-			if (feeds[i].comments && feeds[i].comments.count > 0 && feeds[i].comments.data) {
-				for (var j = 0, jlen = feeds[i].comments.data.length; j < jlen; j++) {
-					youtubeData = getYoutubeData(feeds[i].comments.data[j]);
-					if (youtubeData) {
-						youtubeData.isComment = true;	// Mark as comment
-						videoList.push(youtubeData);
+			try {
+				// Get Youtube video id
+				youtubeData = getYoutubeData(feeds[i]);
+				if (youtubeData) {
+					videoList.push(youtubeData);
+				}
+				
+				// Search comments as well
+				if (feeds[i].comments && feeds[i].comments.count > 0 && feeds[i].comments.data) {
+					for (var j = 0, jlen = feeds[i].comments.data.length; j < jlen; j++) {
+						youtubeData = getYoutubeData(feeds[i].comments.data[j]);
+						if (youtubeData) {
+							youtubeData.isComment = true;	// Mark as comment
+							videoList.push(youtubeData);
+						}
 					}
 				}
+				
+			} catch (e) {
+				// Go next
 			}
 		}
 		
