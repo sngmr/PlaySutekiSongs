@@ -1,7 +1,17 @@
-Facebook/Heroku sample app -- Ruby
-==================================
+PlaySutekiSongs
+===============
 
-This is a sample app showing use of the Facebook Graph API, written in Ruby, designed for deployment to [Heroku](http://www.heroku.com/).
+What's that?
+------------
+This is a Facebook Application made by Sinatra Ruby and some JavaScript to auto play Youtube music video from feeds by 'とっても素敵なグループ'.
+これは’とっても素敵なグループ’に投稿されたYoutubeリンクを自動再生するFacebookアプリケーションです。Sinatra, RubyとJavaScriptでできています。
+
+Where is it from?
+-----------------
+https://www.facebook.com/groups/331943460187050/
+
+How To Run?
+===========
 
 Run locally
 -----------
@@ -20,6 +30,10 @@ Copy the App ID and Secret from the Facebook app settings page into your `.env`:
 Launch the app with [Foreman](http://blog.daviddollar.org/2011/05/06/introducing-foreman.html):
 
     foreman start
+
+Foreman is not reload when apply change JavaScript sources, so I made little bit of code to re-start foreman automatically by Guard. Run by command below, and close terminal if you want to stop automatically procedure.
+
+	./server.sh
 
 Deploy to Heroku via Facebook integration
 -----------------------------------------
