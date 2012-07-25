@@ -118,7 +118,7 @@ STK.loadVideoList = function(callback) {
 			}
 			
 			// Search comments as well
-			if (feeds[i].comments && feeds[i].comments.count > 0) {
+			if (feeds[i].comments && feeds[i].comments.count > 0 && feeds[i].comments.data) {
 				for (var j = 0, jlen = feeds[i].comments.data.length; j < jlen; j++) {
 					youtubeData = getYoutubeData(feeds[i].comments.data[j]);
 					if (youtubeData) {
