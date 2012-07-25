@@ -4,7 +4,10 @@ PlaySutekiSongs
 What's that?
 ------------
 This is a Facebook Application made by Sinatra Ruby and some JavaScript to auto play Youtube music video from feeds by 'とっても素敵なグループ'.
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5c87ac9522546f55f69e3d12aabbc49a849da5b9
 これは’とっても素敵なグループ’に投稿されたYoutubeリンクを自動再生するFacebookアプリケーションです。Sinatra, RubyとJavaScriptでできています。
 
 Where is it from?
